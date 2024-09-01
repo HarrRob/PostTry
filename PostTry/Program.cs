@@ -1,19 +1,27 @@
 ﻿using System;
+using System.Linq;
 using System.Threading.Tasks;
 
 namespace PostTry
 {
     internal class Program
     {
-        public static async Task Main(string[] args)
+        private static async Task Main(string[] args)
         {
-            TokenService tokenService = new TokenService();
-            string token = await tokenService.GetAccessTokenAsync();
-            var getReccomendations = new GetReccomendations();
-            var recommendations = await getReccomendations.GetRecommendationsAsync(token, seedArtists: "artist_id1,artist_id2", seedTracks: "track_id1,track_id2");
+            var tokenService = new TokenService();
+            string authorizationCode = "YOUR_AUTHORIZATION_CODE"; // Replace with the authorization code you receive after user login
+            string accessToken = await tokenService.GetAccessTokenAsync(authorizationCode);
 
-            Console.WriteLine("Recommendations:");
-            Console.WriteLine(recommendations.ToString());
+            var getRecommendations = new GetRecommendations();
+            var recommendations = await getRecommendations.GetRecommendationsAsync(accessToken, "6IZvVAP7VPPnsGX6bvgkqg,51c94ac31swyDQj9B3Lzs3,0jyikFM0Umv0KlnrOEKtTG,6dBUzqjtbnIa1TwYbyw5CM,3kQfBtkQqgN1fAMfhks8TU");
+
+            Console.WriteLine("Recommended Tracks:");
+            foreach (var track in recommendations["tracks"])
+            {
+                var name = track["name"];
+                var artists = string.Join(", ", track["artists"].Select(artist => artist["name"].ToString()));
+                Console.WriteLine($"{name} by {artists}");
+            }
         }
     }
 }
