@@ -1,30 +1,27 @@
 ﻿using System;
 using System.Diagnostics;
 
-namespace authURL
+namespace SpotifyAuth
 {
-    internal class Program
+    public class AuthURL
     {
-        private static void Main(string[] args)
+        public string GenerateAuthorizationURL()
         {
-            // Your Spotify app credentials and settings
-            string clientId = "f9a18ea2ae15426a8665d4df92feb418";
-            string redirectUri = "0ec970e65f81426baa48cdac1d6780b2";
-            string scopes = "user-library-read user-top-read"; // Define the scopes you need
+            string clientId = "f9a18ea2ae15426a8665d4df92feb418"; // Your Spotify client ID
+            string redirectUri = "https://oauth.pstmn.io/v1/callback"; // Your registered redirect URI
+            string scopes = "user-top-read playlist-modify-public playlist-modify-private"; // Adjust scopes as needed
 
             // Construct the authorization URL
             string authorizationUrl = $"https://accounts.spotify.com/authorize?response_type=code&client_id={clientId}&scope={Uri.EscapeDataString(scopes)}&redirect_uri={Uri.EscapeDataString(redirectUri)}";
-
-            // Print URL to console
-            Console.WriteLine("Opening the following URL to authorize the application:");
-            Console.WriteLine(authorizationUrl);
 
             // Open the URL in the default web browser
             Process.Start(new ProcessStartInfo
             {
                 FileName = authorizationUrl,
-                UseShellExecute = true // This ensures the URL is opened in the default web browser
+                UseShellExecute = true // Ensures the URL is opened in the default web browser
             });
+
+            return authorizationUrl;
         }
     }
 }
