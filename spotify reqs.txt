@@ -1,0 +1,6 @@
+get users top tracks from spotify api(get auth code working, get users top tracks)
+compare with dataset to find similar tracks (recommendation algo)
+create playlist based of these tracks
+
+extended: add friends and their taste is added to your similar tracks
+

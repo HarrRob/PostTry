@@ -3,42 +3,27 @@ using System.Diagnostics;
 using System.Threading.Tasks;
 using SpotifyAPI.Web;
 
-namespace SpotifyAuthExample
+namespace SpotifyAuth
 {
     public class AuthURL
     {
-        private string _clientId;
-        private string _redirectUri;
-        private string _verifier;
-        private string _challenge;
-
-        public AuthURL(string clientId, string redirectUri)
+        public string GenerateAuthorizationURL()
         {
-            _clientId = clientId;
-            _redirectUri = redirectUri;
-            (_verifier, _challenge) = PKCEUtil.GenerateCodes();
-        }
+            string clientId = "f9a18ea2ae15426a8665d4df92feb418"; // Your Spotify client ID
+            string redirectUri = "https://oauth.pstmn.io/v1/callback"; // Your registered redirect URI
+            string scopes = "user-top-read playlist-modify-public playlist-modify-private"; // Adjust scopes as needed
 
-        public void GenerateAuthorizationURL()
-        {
-            var loginRequest = new LoginRequest(
-                new Uri(_redirectUri),
-                _clientId,
-                LoginRequest.ResponseType.Code
-            )
-            {
-                CodeChallengeMethod = "S256",
-                CodeChallenge = _challenge,
-                Scope = new[] { Scopes.UserTopRead } // Define scopes
-            };
-            //taken from https://johnnycrazy.github.io/SpotifyAPI-NET/docs/unit_testing
+            // Construct the authorization URL
+            string authorizationUrl = $"https://accounts.spotify.com/authorize?response_type=code&client_id={clientId}&scope={Uri.EscapeDataString(scopes)}&redirect_uri={Uri.EscapeDataString(redirectUri)}";
 
-            var authorizationUri = loginRequest.ToUri();
+            // Open the URL in the default web browser
             Process.Start(new ProcessStartInfo
             {
-                FileName = authorizationUri.ToString(),
-                UseShellExecute = true
+                FileName = authorizationUrl,
+                UseShellExecute = true // Ensures the URL is opened in the default web browser
             });
+
+            return authorizationUrl;
         }
 
         public async Task<SpotifyClient> HandleCallback(string authorizationCode)
