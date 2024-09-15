@@ -1,27 +1,36 @@
 ﻿using System;
-using System.Linq;
 using System.Threading.Tasks;
+using AccessDatabaseExample;
 
-namespace PostTry
+namespace SpotifyAuthExample
 {
     internal class Program
     {
         private static async Task Main(string[] args)
         {
-            var tokenService = new TokenService();
-            string authorizationCode = "YOUR_AUTHORIZATION_CODE"; // Replace with the authorization code you receive after user login
-            string accessToken = await tokenService.GetAccessTokenAsync(authorizationCode);
+            string clientId = "f9a18ea2ae15426a8665d4df92feb418";
+            string redirectUri = "http://localhost:8888/callback";
+            string connectionString = @"Provider=Microsoft.Jet.OLEDB.4.0;Data Source=C:\Users\harry\Documents\access files";
 
-            var getRecommendations = new GetRecommendations();
-            var recommendations = await getRecommendations.GetRecommendationsAsync(accessToken, "6IZvVAP7VPPnsGX6bvgkqg,51c94ac31swyDQj9B3Lzs3,0jyikFM0Umv0KlnrOEKtTG,6dBUzqjtbnIa1TwYbyw5CM,3kQfBtkQqgN1fAMfhks8TU");
+            var authURL = new AuthURL(clientId, redirectUri);
+            var localServer = new LocalServer();
+            _ = localServer.StartLocalServer();
 
-            Console.WriteLine("Recommended Tracks:");
-            foreach (var track in recommendations["tracks"])
-            {
-                var name = track["name"];
-                var artists = string.Join(", ", track["artists"].Select(artist => artist["name"].ToString()));
-                Console.WriteLine($"{name} by {artists}");
-            }
+            authURL.GenerateAuthorizationURL();
+
+            Console.WriteLine("Waiting for authorization code...");
+
+            // Wait for a while to allow the user to authenticate
+            await Task.Delay(TimeSpan.FromMinutes(1)); // Adjust delay as needed
+
+            string authorizationCode = localServer.GetAuthorizationCode();
+
+            var spotify = await authURL.HandleCallback(authorizationCode);
+            Console.WriteLine("Spotify client is ready to use.");
+
+            // Save the authorization code and timestamp to the database
+            var db = new AccessDatabase(connectionString);
+            db.SaveAuthorizationCode(authorizationCode, DateTime.Now);
         }
     }
 }

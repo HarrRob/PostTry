@@ -1,30 +1,62 @@
 ﻿using System;
 using System.Diagnostics;
+using System.Threading.Tasks;
+using SpotifyAPI.Web;
 
-namespace authURL
+namespace SpotifyAuthExample
 {
-    internal class Program
+    public class AuthURL
     {
-        private static void Main(string[] args)
+        private string _clientId;
+        private string _redirectUri;
+        private string _verifier;
+        private string _challenge;
+
+        public AuthURL(string clientId, string redirectUri)
         {
-            // Your Spotify app credentials and settings
-            string clientId = "f9a18ea2ae15426a8665d4df92feb418";
-            string redirectUri = "0ec970e65f81426baa48cdac1d6780b2";
-            string scopes = "user-library-read user-top-read"; // Define the scopes you need
+            _clientId = clientId;
+            _redirectUri = redirectUri;
+            (_verifier, _challenge) = PKCEUtil.GenerateCodes();
+        }
 
-            // Construct the authorization URL
-            string authorizationUrl = $"https://accounts.spotify.com/authorize?response_type=code&client_id={clientId}&scope={Uri.EscapeDataString(scopes)}&redirect_uri={Uri.EscapeDataString(redirectUri)}";
+        public void GenerateAuthorizationURL()
+        {
+            var loginRequest = new LoginRequest(
+                new Uri(_redirectUri),
+                _clientId,
+                LoginRequest.ResponseType.Code
+            )
+            {
+                CodeChallengeMethod = "S256",
+                CodeChallenge = _challenge,
+                Scope = new[] { Scopes.UserTopRead } // Define scopes
+            };
+            //taken from https://johnnycrazy.github.io/SpotifyAPI-NET/docs/unit_testing
 
-            // Print URL to console
-            Console.WriteLine("Opening the following URL to authorize the application:");
-            Console.WriteLine(authorizationUrl);
-
-            // Open the URL in the default web browser
+            var authorizationUri = loginRequest.ToUri();
             Process.Start(new ProcessStartInfo
             {
-                FileName = authorizationUrl,
-                UseShellExecute = true // This ensures the URL is opened in the default web browser
+                FileName = authorizationUri.ToString(),
+                UseShellExecute = true
             });
         }
+
+        public async Task<SpotifyClient> HandleCallback(string authorizationCode)
+        {
+            var oauthClient = new OAuthClient();
+            var tokenRequest = new PKCETokenRequest(
+                _clientId,
+                authorizationCode,
+                new Uri(_redirectUri),
+                _verifier
+            );
+
+            var tokenResponse = await oauthClient.RequestToken(tokenRequest);
+            Console.WriteLine("Access Token: " + tokenResponse.AccessToken);
+            Console.WriteLine("Refresh Token: " + tokenResponse.RefreshToken);
+
+            return new SpotifyClient(tokenResponse.AccessToken);
+        }
+        //used  https://johnnycrazy.github.io/SpotifyAPI-NET/docs/unit_testing
     }
 }
