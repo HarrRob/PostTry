@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Threading.Tasks;
-using AccessDatabaseExample;
+using SpotifyAuth;
+using System.Data.OleDb;
 
 namespace SpotifyAuthExample
 {
@@ -8,11 +9,19 @@ namespace SpotifyAuthExample
     {
         private static async Task Main(string[] args)
         {
+            Console.WriteLine("input fist name");
+            string firstName = Console.ReadLine();
+            Console.Clear();
+            Console.WriteLine("input last name");
+            string lastName = Console.ReadLine();
+            Console.Clear();
             string clientId = "f9a18ea2ae15426a8665d4df92feb418";
             string redirectUri = "http://localhost:8888/callback";
             string connectionString = @"Provider=Microsoft.Jet.OLEDB.4.0;Data Source=C:\Users\harry\Documents\access files";
+            string PKCE_verifier = "simple_verifier";
 
-            var authURL = new AuthURL(clientId, redirectUri);
+
+            var authURL = new AuthURL(clientId, redirectUri, PKCE_verifier);
             var localServer = new LocalServer();
             _ = localServer.StartLocalServer();
 
@@ -30,7 +39,11 @@ namespace SpotifyAuthExample
 
             // Save the authorization code and timestamp to the database
             var db = new AccessDatabase(connectionString);
-            db.SaveAuthorizationCode(authorizationCode, DateTime.Now);
+            db.SaveUserInfo(firstName, lastName, authorizationCode);
+
+            // Display all users to verify
+            db.DisplayUsers();
+
         }
     }
 }

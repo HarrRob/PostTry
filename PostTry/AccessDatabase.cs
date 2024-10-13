@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Data.OleDb;
 
-namespace AccessDatabaseExample
+namespace SpotifyAuthExample
 {
     public class AccessDatabase
     {
@@ -12,35 +12,44 @@ namespace AccessDatabaseExample
             _connectionString = connectionString;
         }
 
-        public void SaveAuthorizationCode(string authorizationCode, DateTime timestamp)
+        public void SaveUserInfo(string firstName, string lastName, string authCode)
         {
-            using (var conn = new OleDbConnection(_connectionString))
+            using (OleDbConnection connection = new OleDbConnection(_connectionString))
             {
-                try
-                {
-                    conn.Open();
-                    Console.WriteLine("Connection to the database successful.");
+                string query = "INSERT INTO Users (FirstName, LastName, AUTHCODE, CreatedAt) VALUES (@FirstName, @LastName, @AuthCode, @CreatedAt)";
 
-                    string insertQuery = "INSERT INTO AccessCodes (AccessCode, Timestamp) VALUES (?, ?)";
-                    using (var cmd = new OleDbCommand(insertQuery, conn))
+                using (OleDbCommand command = new OleDbCommand(query, connection))
+                {
+                    command.Parameters.AddWithValue("@FirstName", firstName);
+                    command.Parameters.AddWithValue("@LastName", lastName);
+                    command.Parameters.AddWithValue("@AuthCode", authCode);
+                    command.Parameters.AddWithValue("@CreatedAt", DateTime.Now);
+
+                    connection.Open();
+                    command.ExecuteNonQuery();
+                    connection.Close();
+                }
+            }
+        }
+        public void DisplayUsers()
+        {
+            using (OleDbConnection connection = new OleDbConnection(_connectionString))
+            {
+                string query = "SELECT * FROM Users";
+                using (OleDbCommand command = new OleDbCommand(query, connection))
+                {
+                    connection.Open();
+                    using (OleDbDataReader reader = command.ExecuteReader())
                     {
-                        // Add parameters to prevent SQL injection
-                        cmd.Parameters.AddWithValue("?", authorizationCode);
-                        cmd.Parameters.AddWithValue("?", timestamp);
-
-                        int rowsAffected = cmd.ExecuteNonQuery();
-                        Console.WriteLine($"Rows affected: {rowsAffected}");
+                        while (reader.Read())
+                        {
+                            Console.WriteLine($"UserID: {reader["UserID"]}, FirstName: {reader["FirstName"]}, LastName: {reader["LastName"]}, AUTHCODE: {reader["AUTHCODE"]}, CreatedAt: {reader["CreatedAt"]}");
+                        }
                     }
-                }
-                catch (Exception ex)
-                {
-                    Console.WriteLine("Failed to save data: " + ex.Message);
-                }
-                finally
-                {
-                    conn.Close();
+                    connection.Close();
                 }
             }
         }
     }
 }
+
