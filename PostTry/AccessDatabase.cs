@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Microsoft.Data.Sqlite;
+using System;
 using System.Data.OleDb;
 
 namespace SpotifyAuthExample
@@ -14,36 +15,45 @@ namespace SpotifyAuthExample
 
         public void SaveUserInfo(string firstName, string lastName, string authCode)
         {
-            using (OleDbConnection connection = new OleDbConnection(_connectionString))
+            try
             {
-                string query = "INSERT INTO Users (FirstName, LastName, AUTHCODE, CreatedAt) VALUES (@FirstName, @LastName, @AuthCode, @CreatedAt)";
-
-                using (OleDbCommand command = new OleDbCommand(query, connection))
+                var connection = new SqliteConnection("SqlQuery_1.sql");
+                using (connection)
                 {
-                    command.Parameters.AddWithValue("@FirstName", firstName);
-                    command.Parameters.AddWithValue("@LastName", lastName);
-                    command.Parameters.AddWithValue("@AuthCode", authCode);
-                    command.Parameters.AddWithValue("@CreatedAt", DateTime.Now);
-
                     connection.Open();
-                    command.ExecuteNonQuery();
-                    connection.Close();
+
+                    var insertCommand = connection.CreateCommand();
+                    insertCommand.CommandText =
+                    @"
+                        INSERT INTO Users (FirstName, LastName, AuthCode)
+                        VALUES ($firstName, $lastName, $authCode);
+                    ";
+                    insertCommand.Parameters.AddWithValue("$firstName", firstName);
+                    insertCommand.Parameters.AddWithValue("$lastName", lastName);
+                    insertCommand.Parameters.AddWithValue("$authCode", authCode);
+                    insertCommand.ExecuteNonQuery();
                 }
             }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"An error occurred: {ex.Message}");
+            }
         }
+
         public void DisplayUsers()
         {
-            using (OleDbConnection connection = new OleDbConnection(_connectionString))
+            using (var connection = new SqliteConnection(_connectionString))
             {
                 string query = "SELECT * FROM Users";
-                using (OleDbCommand command = new OleDbCommand(query, connection))
+                using (var command = new SqliteCommand(query, connection))
                 {
                     connection.Open();
-                    using (OleDbDataReader reader = command.ExecuteReader())
+                    using (var reader = command.ExecuteReader())
                     {
                         while (reader.Read())
                         {
-                            Console.WriteLine($"UserID: {reader["UserID"]}, FirstName: {reader["FirstName"]}, LastName: {reader["LastName"]}, AUTHCODE: {reader["AUTHCODE"]}, CreatedAt: {reader["CreatedAt"]}");
+                            Console.WriteLine($"UserID: {reader["Id"]}, FirstName: {reader["FirstName"]}, LastName: {reader["LastName"]}, AUTHCODE: {reader["AuthCode"]}, Timestamp: {reader["Timestamp"]}");
+                            Console.ReadKey();
                         }
                     }
                     connection.Close();
