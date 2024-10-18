@@ -17,7 +17,7 @@ namespace SpotifyAuthExample
             Console.Clear();
             string clientId = "f9a18ea2ae15426a8665d4df92feb418";
             string redirectUri = "http://localhost:8888/callback";
-            string connectionString = @"Provider=Microsoft.Jet.OLEDB.4.0;Data Source=C:\Users\harry\Documents\access files";
+            string connectionString = @"Provider=Microsoft.Jet.OLEDB.4.0;Data Source=C:\Users\AQ232398\source\repos\PostTry\PostTry\testDatabase.mdf";
             string PKCE_verifier = "simple_verifier";
 
 
@@ -38,7 +38,7 @@ namespace SpotifyAuthExample
             Console.WriteLine("Spotify client is ready to use.");
 
             // Save the authorization code and timestamp to the database
-            var db = new AccessDatabase(connectionString);
+            var db = new SQLiteDatabase(connectionString);
             db.SaveUserInfo(firstName, lastName, authorizationCode);
 
             // Display all users to verify

@@ -1,14 +1,13 @@
 ﻿using Microsoft.Data.Sqlite;
 using System;
-using System.Data.OleDb;
 
 namespace SpotifyAuthExample
 {
-    public class AccessDatabase
+    public class SQLiteDatabase
     {
         private readonly string _connectionString;
 
-        public AccessDatabase(string connectionString)
+        public SQLiteDatabase(string connectionString)
         {
             _connectionString = connectionString;
         }
@@ -17,8 +16,7 @@ namespace SpotifyAuthExample
         {
             try
             {
-                var connection = new SqliteConnection("SqlQuery_1.sql");
-                using (connection)
+                using (var connection = new SqliteConnection(_connectionString))
                 {
                     connection.Open();
 
@@ -52,14 +50,12 @@ namespace SpotifyAuthExample
                     {
                         while (reader.Read())
                         {
-                            Console.WriteLine($"UserID: {reader["Id"]}, FirstName: {reader["FirstName"]}, LastName: {reader["LastName"]}, AUTHCODE: {reader["AuthCode"]}, Timestamp: {reader["Timestamp"]}");
+                            Console.WriteLine($"UserID: {reader["UserID"]}, FirstName: {reader["FirstName"]}, LastName: {reader["LastName"]}, AUTHCODE: {reader["AuthCode"]}, CreatedAt: {reader["CreatedAt"]}");
                             Console.ReadKey();
                         }
                     }
-                    connection.Close();
                 }
             }
         }
     }
 }
-
