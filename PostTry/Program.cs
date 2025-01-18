@@ -1,7 +1,10 @@
 ﻿using System;
 using System.Threading.Tasks;
+using System.Linq;
+using System.Collections.Generic;
+using PostTry;  // Make sure this is added to reference MetaData class
 using SpotifyAuth;
-using System.Data.OleDb;
+using SpotifyAPI.Web;
 
 namespace SpotifyAuthExample
 {
@@ -9,41 +12,102 @@ namespace SpotifyAuthExample
     {
         private static async Task Main(string[] args)
         {
-            Console.WriteLine("input fist name");
-            string firstName = Console.ReadLine();
-            Console.Clear();
-            Console.WriteLine("input last name");
-            string lastName = Console.ReadLine();
-            Console.Clear();
-            string clientId = "f9a18ea2ae15426a8665d4df92feb418";
-            string redirectUri = "http://localhost:8888/callback";
-            string connectionString = @"Provider=Microsoft.Jet.OLEDB.4.0;Data Source=C:\Users\AQ232398\source\repos\PostTry\PostTry\testDatabase.mdf";
-            string PKCE_verifier = "simple_verifier";
+            try
+            {
+                DatabaseHelper.InitializeDatabase();
+                Console.WriteLine("Input first name:");
+                string firstName = Console.ReadLine()?.Trim();
+                if (string.IsNullOrEmpty(firstName))
+                {
+                    Console.WriteLine("First name cannot be empty.");
+                    return;
+                }
+                Console.Clear();
 
+                Console.WriteLine("Input last name:");
+                string lastName = Console.ReadLine()?.Trim();
+                if (string.IsNullOrEmpty(lastName))
+                {
+                    Console.WriteLine("Last name cannot be empty.");
+                    return;
+                }
+                Console.Clear();
 
-            var authURL = new AuthURL(clientId, redirectUri, PKCE_verifier);
-            var localServer = new LocalServer();
-            _ = localServer.StartLocalServer();
+                string clientId = "f9a18ea2ae15426a8665d4df92feb418";
+                string redirectUri = "http://localhost:8888/callback";
+                var PKCE_verifier = PKCEUtil.GenerateCodeVerifier();
+                AuthURL authURL = new AuthURL(clientId, redirectUri, PKCE_verifier);
+                var localServer = new LocalServer();
+                _ = localServer.StartLocalServer();
 
-            authURL.GenerateAuthorizationURL();
+                // Generate the URL for the user to authenticate
+                string authUrl = authURL.GenerateAuthorizationURL();
 
-            Console.WriteLine("Waiting for authorization code...");
+                Console.WriteLine("Please open the following URL to authenticate:");
+                Console.WriteLine(authUrl);
+                Console.WriteLine("Waiting for authorization code...");
 
-            // Wait for a while to allow the user to authenticate
-            await Task.Delay(TimeSpan.FromMinutes(1)); // Adjust delay as needed
+                // Loop until the authorization code is received
+                string authorizationCode = string.Empty;
+                while (string.IsNullOrEmpty(authorizationCode))
+                {
+                    authorizationCode = localServer.GetAuthorizationCode();
+                    if (string.IsNullOrEmpty(authorizationCode))
+                    {
+                        await Task.Delay(1000); // Wait 1 second before trying again
+                    }
+                }
 
-            string authorizationCode = localServer.GetAuthorizationCode();
+                if (string.IsNullOrEmpty(authorizationCode))
+                {
+                    Console.WriteLine("Authorization code not received.");
+                    return;
+                }
 
-            var spotify = await authURL.HandleCallback(authorizationCode);
-            Console.WriteLine("Spotify client is ready to use.");
+                // Obtain SpotifyClient from the callback using the authorization code
+                SpotifyClient spotifyClient = authURL.HandleCallback(authorizationCode);
 
-            // Save the authorization code and timestamp to the database
-            var db = new SQLiteDatabase(connectionString);
-            db.SaveUserInfo(firstName, lastName, authorizationCode);
+                if (spotifyClient == null)
+                {
+                    Console.WriteLine("Failed to get Spotify Client.");
+                    return;
+                }
 
-            // Display all users to verify
-            db.DisplayUsers();
+                // Save user information to the database (uncomment when needed)
+                //DatabaseHelper.addUserInfo(firstName, lastName, authorizationCode);
 
+                // Fetch and display the user's top tracks
+                UserTopTracks userTopTracks = new UserTopTracks(spotifyClient);
+                var topTracks = await userTopTracks.GetTopTracksAsync(10);
+
+                if (topTracks != null && topTracks.Any())
+                {
+                    Console.WriteLine("Your top tracks are:");
+                    foreach (var track in topTracks)
+                    {
+                        Console.WriteLine($"{track.Name} by {string.Join(", ", track.Artists.Select(a => a.Name))}");
+                    }
+
+                    // Now call TrackAnalyzer to fetch additional metadata for the top tracks
+                    var analyzer = new TrackAnalyzer(spotifyClient);
+                    var trackMetadata = await analyzer.ProcessTracksAsync(topTracks);
+
+                    Console.WriteLine("\nTrack Metadata:");
+                    foreach (var metadata in trackMetadata)
+                    {
+                        Console.WriteLine("\n" + metadata.ToString());
+                        Console.WriteLine("----------------------");
+                    }
+                }
+                else
+                {
+                    Console.WriteLine("No top tracks found.");
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"An error occurred: {ex.Message}");
+            }
         }
     }
 }

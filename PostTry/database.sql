@@ -1,7 +1,0 @@
-CREATE TABLE Users (
-    UserID INTEGER PRIMARY KEY AUTOINCREMENT,
-    FirstName TEXT,
-    LastName TEXT,
-    AuthCode TEXT,
-    CreatedAt DATETIME DEFAULT CURRENT_TIMESTAMP
-);
