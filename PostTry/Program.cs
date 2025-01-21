@@ -2,7 +2,7 @@
 using System.Threading.Tasks;
 using System.Linq;
 using System.Collections.Generic;
-using PostTry;  // Make sure this is added to reference MetaData class
+using PostTry;  // Ensure this is added to reference MetaData class
 using SpotifyAuth;
 using SpotifyAPI.Web;
 
@@ -64,20 +64,24 @@ namespace SpotifyAuthExample
                     return;
                 }
 
-                // Obtain SpotifyClient from the callback using the authorization code
-                SpotifyClient spotifyClient = authURL.HandleCallback(authorizationCode);
+                // Obtain token data using the authorization code
+                var tokenData = authURL.HandleCallback(authorizationCode);
 
-                if (spotifyClient == null)
+                if (tokenData == null)
                 {
-                    Console.WriteLine("Failed to get Spotify Client.");
+                    Console.WriteLine("Failed to get token data.");
                     return;
                 }
+
+                // Create SpotifyClient instance using the access token
+                var config = SpotifyClientConfig.CreateDefault();
+                var spotifyClient = new SpotifyClient(config.WithToken(tokenData.AccessToken)); // Use WithToken method
 
                 // Save user information to the database (uncomment when needed)
                 //DatabaseHelper.addUserInfo(firstName, lastName, authorizationCode);
 
-                // Fetch and display the user's top tracks
-                UserTopTracks userTopTracks = new UserTopTracks(spotifyClient);
+                // Fetch and display the user's top tracks using the spotifyClient
+                UserTopTracks userTopTracks = new UserTopTracks(spotifyClient);  // Pass the SpotifyClient here
                 var topTracks = await userTopTracks.GetTopTracksAsync(10);
 
                 if (topTracks != null && topTracks.Any())
@@ -89,7 +93,13 @@ namespace SpotifyAuthExample
                     }
 
                     // Now call TrackAnalyzer to fetch additional metadata for the top tracks
-                    var analyzer = new TrackAnalyzer(spotifyClient);
+                    // Assuming RefreshAccessToken returns an object with AccessToken property
+                    var refreshedToken = authURL.RefreshAccessToken(tokenData.RefreshToken);
+                    var newConfig = SpotifyClientConfig.CreateDefault()
+                           .WithToken(tokenData.AccessToken);  // Use AccessToken from the refreshed token
+
+                    var newSpotifyClient = new SpotifyClient(newConfig);
+                    var analyzer = new TrackAnalyzer(newSpotifyClient);
                     var trackMetadata = await analyzer.ProcessTracksAsync(topTracks);
 
                     Console.WriteLine("\nTrack Metadata:");
