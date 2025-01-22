@@ -2,7 +2,7 @@
 using System.Threading.Tasks;
 using System.Linq;
 using System.Collections.Generic;
-using PostTry;  // Ensure this is added to reference the MetaData class
+using PostTry;  // Ensure this is added to reference MetaData class
 using SpotifyAuth;
 using SpotifyAPI.Web;
 
@@ -14,10 +14,7 @@ namespace SpotifyAuthExample
         {
             try
             {
-                // Initialize the database (if applicable)
                 DatabaseHelper.InitializeDatabase();
-
-                // Get the first name input from the user
                 Console.WriteLine("Input first name:");
                 string firstName = Console.ReadLine()?.Trim();
                 if (string.IsNullOrEmpty(firstName))
@@ -27,7 +24,6 @@ namespace SpotifyAuthExample
                 }
                 Console.Clear();
 
-                // Get the last name input from the user
                 Console.WriteLine("Input last name:");
                 string lastName = Console.ReadLine()?.Trim();
                 if (string.IsNullOrEmpty(lastName))
@@ -37,30 +33,28 @@ namespace SpotifyAuthExample
                 }
                 Console.Clear();
 
-                // Define the client ID and redirect URI for Spotify authentication
                 string clientId = "f9a18ea2ae15426a8665d4df92feb418";
                 string redirectUri = "http://localhost:8888/callback";
                 var PKCE_verifier = PKCEUtil.GenerateCodeVerifier();
-
-                // Create the AuthURL object and start the local server for Spotify login
                 AuthURL authURL = new AuthURL(clientId, redirectUri, PKCE_verifier);
                 var localServer = new LocalServer();
                 _ = localServer.StartLocalServer();
 
-                // Generate the authorization URL and prompt the user to authenticate
+                // Generate the URL for the user to authenticate
                 string authUrl = authURL.GenerateAuthorizationURL();
+
                 Console.WriteLine("Please open the following URL to authenticate:");
                 Console.WriteLine(authUrl);
                 Console.WriteLine("Waiting for authorization code...");
 
-                // Wait until the authorization code is received
+                // Loop until the authorization code is received
                 string authorizationCode = string.Empty;
                 while (string.IsNullOrEmpty(authorizationCode))
                 {
                     authorizationCode = localServer.GetAuthorizationCode();
                     if (string.IsNullOrEmpty(authorizationCode))
                     {
-                        await Task.Delay(1000); // Wait for 1 second before retrying
+                        await Task.Delay(1000); // Wait 1 second before trying again
                     }
                 }
 
@@ -79,15 +73,15 @@ namespace SpotifyAuthExample
                     return;
                 }
 
-                // Create the Spotify client instance using the obtained access token
+                // Create SpotifyClient instance using the access token
                 var config = SpotifyClientConfig.CreateDefault();
-                var spotifyClient = new SpotifyClient(config.WithToken(tokenData.AccessToken));
+                var spotifyClient = new SpotifyClient(config.WithToken(tokenData.AccessToken)); // Use WithToken method
 
-                // Optionally, save user information to the database (uncomment if needed)
-                // DatabaseHelper.addUserInfo(firstName, lastName, authorizationCode);
+                // Save user information to the database (uncomment when needed)
+                //DatabaseHelper.addUserInfo(firstName, lastName, authorizationCode);
 
-                // Fetch and display the user's top tracks
-                UserTopTracks userTopTracks = new UserTopTracks(spotifyClient);
+                // Fetch and display the user's top tracks using the spotifyClient
+                UserTopTracks userTopTracks = new UserTopTracks(spotifyClient);  // Pass the SpotifyClient here
                 var topTracks = await userTopTracks.GetTopTracksAsync(10);
 
                 if (topTracks != null && topTracks.Any())
@@ -98,10 +92,11 @@ namespace SpotifyAuthExample
                         Console.WriteLine($"{track.Name} by {string.Join(", ", track.Artists.Select(a => a.Name))}");
                     }
 
-                    // Fetch additional metadata for the top tracks using TrackAnalyzer
+                    // Now call TrackAnalyzer to fetch additional metadata for the top tracks
+                    // Assuming RefreshAccessToken returns an object with AccessToken property
                     var refreshedToken = authURL.RefreshAccessToken(tokenData.RefreshToken);
                     var newConfig = SpotifyClientConfig.CreateDefault()
-                        .WithToken(refreshedToken.AccessToken);  // Use AccessToken from the refreshed token
+                           .WithToken(tokenData.AccessToken);  // Use AccessToken from the refreshed token
 
                     var newSpotifyClient = new SpotifyClient(newConfig);
                     var analyzer = new TrackAnalyzer(newSpotifyClient);
