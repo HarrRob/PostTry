@@ -21,9 +21,9 @@ namespace SpotifyAuthExample
             {
                 while (true)
                 {
-                    var context = _listener.GetContext();
-                    var request = context.Request;
-                    var response = context.Response;
+                    HttpListenerContext context = _listener.GetContext();
+                    HttpListenerRequest request = context.Request;
+                    HttpListenerResponse response = context.Response;
 
                     // Check for /callback path
                     if (request.Url.AbsolutePath == "/callback")
